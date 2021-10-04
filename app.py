@@ -1,5 +1,8 @@
 import os
 import sys
+import cv2
+import pprint
+import numpy as np
 
 # Flask
 from flask import Flask, redirect, url_for, request, render_template, Response, jsonify, redirect
@@ -17,7 +20,8 @@ from tensorflow.keras.preprocessing import image
 # Some utilites
 import numpy as np
 from util import base64_to_pil
-
+from preprocess import process_test
+from preprocess import process
 
 # Declare a flask app
 app = Flask(__name__)
@@ -28,34 +32,80 @@ app = Flask(__name__)
 # or https://www.tensorflow.org/api_docs/python/tf/keras/applications
 
 from tensorflow.keras.applications.mobilenet_v2 import MobileNetV2
-model = MobileNetV2(weights='imagenet')
+#model = MobileNetV2(weights='imagenet')
 
-print('Model loaded. Check http://127.0.0.1:5000/')
+#print('Model loaded. Check http://127.0.0.1:5000/')
 
 
 # Model saved with Keras model.save()
-MODEL_PATH = 'models/your_model.h5'
+MODEL_PATH = 'models\ImageEmptionClassifierModel'
 
 # Load your own trained model
-# model = load_model(MODEL_PATH)
-# model._make_predict_function()          # Necessary
-# print('Model loaded. Start serving...')
+model = load_model(MODEL_PATH)
+#model._make_predict_function()          # Necessary
+print('Model loaded. Start serving...')
 
+row = 80
+cox = 80
+# def process(imageName):
+#     output = None
+#     #check the format of image
+#     #if imageName.endswith('jpg') or imageName.endswith('png') or imageName.endswith('jpeg'):
+        
+#         # read the image in grayscale
+#     #grayscaleImage = cv2.imread(imageName, cv2.IMREAD_GRAYSCALE)
+#     image = cv2.imdecode(np.fromstring(imageName, np.uint8), cv2.IMREAD_GRAYSCALE)/ 255
 
-def model_predict(img, model):
-    img = img.resize((224, 224))
+#         # resize the image 28 * 28
+#     output = cv2.resize(grayscaleImage, (80, 80))
 
-    # Preprocessing the image
-    x = image.img_to_array(img)
-    # x = np.true_divide(x, 255)
-    x = np.expand_dims(x, axis=0)
+#     return output
+        
 
-    # Be careful how your trained model deals with the input
-    # otherwise, it won't make correct prediction!
-    x = preprocess_input(x, mode='tf')
+    #return the resul
+    
+        
 
-    preds = model.predict(x)
-    return preds
+    #return the result
+    # return output
+# TODO: we may need to assign output appropriately labelled here as output would be integers
+def category_output(prediction):
+  emotion_types = ["Damilola", "Damola", "Fatimah", "David", "Rasheed", "Oluleye"] 
+  result = emotion_types[np.argmax(prediction)]
+  return result
+
+  
+# def model_predict(img, model):
+#     #img = img.resize((80, 80))
+
+#     # Preprocessing the image
+#     #x = cv2.imread(img, cv2.IMREAD_GRAYSCALE)
+#     #x = np.true_divide(x, 255)
+#     #x = np.expand_dims(x, axis=0)
+
+#     # Be careful how your trained model deals with the input
+#     # otherwise, it won't make correct prediction!
+#     x= img
+#     processed_img = np.array(x)
+#     feature_img = np.array(x).reshape(-1, 80, 80, 1)
+
+#     preds = model.predict(feature_img)
+#     return preds
+
+# def model_predict(img, model):
+#     img = img.resize((80, 80))
+
+#     # Preprocessing the image
+#     x = image.img_to_array(img)
+#     # x = np.true_divide(x, 255)
+#     #x = np.expand_dims(x, axis=0)
+#     x = np.array(x).reshape(-1, 80, 80, 1)
+#     # Be careful how your trained model deals with the input
+#     # otherwise, it won't make correct prediction!
+#     #x = preprocess_input(x, mode='tf')
+
+#     preds = model.predict(x)
+#     return preds
 
 
 @app.route('/', methods=['GET'])
@@ -69,23 +119,17 @@ def predict():
     if request.method == 'POST':
         # Get the image from post request
         img = base64_to_pil(request.json)
+        img.save("./uploads/image.jpg")
+        pat = './uploads/image.jpg'
+        img = process(pat)
+        #img = model.predict()
+        processed_img = image.img_to_array(img)
+        feature_img = np.array(processed_img).reshape(-1, 80, 80, 1)
+        output = model.predict(feature_img)
 
-        # Save the image to ./uploads
-        # img.save("./uploads/image.png")
-
-        # Make prediction
-        preds = model_predict(img, model)
-
-        # Process your result for human
-        pred_proba = "{:.3f}".format(np.amax(preds))    # Max probability
-        pred_class = decode_predictions(preds, top=1)   # ImageNet Decode
-
-        result = str(pred_class[0][0][1])               # Convert to string
-        result = result.replace('_', ' ').capitalize()
-        
-        # Serialize the result, you can add additional fields
-        return jsonify(result=result, probability=pred_proba)
-
+        output_class = category_output(output)
+        #print('Image: ',img, '\n') 
+        return jsonify(result=output_class)
     return None
 
 
