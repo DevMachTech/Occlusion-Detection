@@ -38,7 +38,7 @@ from tensorflow.keras.applications.mobilenet_v2 import MobileNetV2
 
 
 # Model saved with Keras model.save()
-MODEL_PATH = 'models\ImageEmptionClassifierModel'
+MODEL_PATH = 'models\ImageEmptionClassifierModelVGG'
 
 # Load your own trained model
 model = load_model(MODEL_PATH)
@@ -70,7 +70,7 @@ cox = 80
     # return output
 # TODO: we may need to assign output appropriately labelled here as output would be integers
 def category_output(prediction):
-  emotion_types = ["Damilola", "Damola", "Fatimah", "David", "Rasheed", "Oluleye"] 
+  emotion_types = ["Damilola", "Damola", "David", "Fatimah", "Ismail", "Molola", "Oluleye", "Rasheed"] 
   result = emotion_types[np.argmax(prediction)]
   return result
 
@@ -120,11 +120,18 @@ def predict():
         # Get the image from post request
         img = base64_to_pil(request.json)
         img.save("./uploads/image.jpg")
-        pat = './uploads/image.jpg'
-        img = process(pat)
+        filename = './uploads/image.jpg'
+        #img = process(pat)
         #img = model.predict()
-        processed_img = image.img_to_array(img)
-        feature_img = np.array(processed_img).reshape(-1, 80, 80, 1)
+        processed_img = image.img_to_array(filename)
+        img = cv2.imread(filename)
+        img = cv2.resize(img,(224, 224))
+        img = image.img_to_array(img)
+        img = np.expand_dims(img, axis=0)
+        img = preprocess_input(img)
+        #processed_img = np.array(img)
+        img = np.array(img).reshape(-1, 224, 224, 3)
+        #feature_img = np.array(processed_img).reshape(-1, 80, 80, 1)
         output = model.predict(feature_img)
 
         output_class = category_output(output)
